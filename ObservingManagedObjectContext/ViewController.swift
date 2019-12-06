@@ -18,9 +18,9 @@ class ViewController: UITableViewController, NSFetchedResultsControllerDelegate 
     var user: User?
     var managedObjectContext: NSManagedObjectContext?
 
-    lazy var fetchedResultsController: NSFetchedResultsController = {
+    lazy var fetchedResultsController: NSFetchedResultsController<NSFetchRequestResult> = {
         // Create Fetch Request
-        let fetchRequest = NSFetchRequest(entityName: "Note")
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Note")
 
         // Configure Fetch Request
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
@@ -41,10 +41,10 @@ class ViewController: UITableViewController, NSFetchedResultsControllerDelegate 
 
         if let managedObjectContext = managedObjectContext {
             // Add Observer
-            let notificationCenter = NSNotificationCenter.defaultCenter()
-            notificationCenter.addObserver(self, selector: #selector(managedObjectContextObjectsDidChange), name: NSManagedObjectContextObjectsDidChangeNotification, object: managedObjectContext)
-            notificationCenter.addObserver(self, selector: #selector(managedObjectContextWillSave), name: NSManagedObjectContextWillSaveNotification, object: managedObjectContext)
-            notificationCenter.addObserver(self, selector: #selector(managedObjectContextDidSave), name: NSManagedObjectContextDidSaveNotification, object: managedObjectContext)
+            let notificationCenter = NotificationCenter.default
+            notificationCenter.addObserver(self, selector: #selector(managedObjectContextObjectsDidChange), name: NSNotification.Name.NSManagedObjectContextObjectsDidChange, object: managedObjectContext)
+            notificationCenter.addObserver(self, selector: #selector(managedObjectContextWillSave), name: NSNotification.Name.NSManagedObjectContextWillSave, object: managedObjectContext)
+            notificationCenter.addObserver(self, selector: #selector(managedObjectContextDidSave), name: NSNotification.Name.NSManagedObjectContextDidSave, object: managedObjectContext)
         }
 
         if let currentUser = fetchUser() {
@@ -65,15 +65,14 @@ class ViewController: UITableViewController, NSFetchedResultsControllerDelegate 
     }
 
     // MARK: - Navigation
-
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "UserSegue" {
-            if let userViewController = segue.destinationViewController as? UserViewController {
+            if let userViewController = segue.destination as? UserViewController {
                 userViewController.user = user
             }
 
         } else if segue.identifier == "AddNoteSegue" {
-            if let addNoteViewController = segue.destinationViewController as? AddNoteViewController {
+            if let addNoteViewController = segue.destination as? AddNoteViewController {
                 addNoteViewController.user = user
             }
         }
@@ -81,54 +80,56 @@ class ViewController: UITableViewController, NSFetchedResultsControllerDelegate 
 
     // MARK: - Fetched Results Controller Delegate Methods
 
-    func controllerWillChangeContent(controller: NSFetchedResultsController) {
+    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         tableView.beginUpdates()
     }
 
-    func controllerDidChangeContent(controller: NSFetchedResultsController) {
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         tableView.endUpdates()
     }
 
-    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
+    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         switch (type) {
-        case .Insert:
+        case .insert:
             if let indexPath = newIndexPath {
-                tableView.insertRowsAtIndexPaths([indexPath], withRowAnimation: .Fade)
+                tableView.insertRows(at: [indexPath], with: .fade)
             }
             break;
-        case .Delete:
+        case .delete:
             if let indexPath = indexPath {
-                tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: .Fade)
+                tableView.deleteRows(at: [indexPath], with: .fade)
             }
             break;
-        case .Update:
-            if let indexPath = indexPath, let cell = tableView.cellForRowAtIndexPath(indexPath) {
-                configureCell(cell, atIndexPath: indexPath)
+        case .update:
+            if let indexPath = indexPath, let cell = tableView.cellForRow(at: indexPath) {
+                configureCell(cell: cell, atIndexPath: indexPath)
             }
             break;
-        case .Move:
+        case .move:
             if let indexPath = indexPath {
-                tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: .Fade)
+                tableView.deleteRows(at: [indexPath], with: .fade)
             }
 
             if let newIndexPath = newIndexPath {
-                tableView.insertRowsAtIndexPaths([newIndexPath], withRowAnimation: .Fade)
+                tableView.insertRows(at: [newIndexPath], with: .fade)
             }
             break;
+        @unknown default:
+            fatalError()
         }
     }
 
     // MARK: - Table View Data Source Methods
-
-    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+    
+    override func numberOfSections(in tableView: UITableView) -> Int {
         if let sections = fetchedResultsController.sections {
             return sections.count
         }
 
         return 0
     }
-
-    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+ 
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if let sections = fetchedResultsController.sections {
             return sections[section].numberOfObjects
         }
@@ -136,45 +137,45 @@ class ViewController: UITableViewController, NSFetchedResultsControllerDelegate 
         return 0
     }
 
-    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier(noteCell, forIndexPath: indexPath)
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: noteCell, for: indexPath)
 
-        configureCell(cell, atIndexPath: indexPath)
+        configureCell(cell: cell, atIndexPath: indexPath)
 
         return cell
     }
 
-    func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
-        if let note = fetchedResultsController.objectAtIndexPath(indexPath) as? Note {
+    func configureCell(cell: UITableViewCell, atIndexPath indexPath: IndexPath) {
+        if let note = fetchedResultsController.object(at: indexPath) as? Note {
             cell.textLabel?.text = note.title
         }
     }
 
-    override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
+    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         return true
     }
 
-    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
-        if editingStyle == .Delete {
-            if let note = fetchedResultsController.objectAtIndexPath(indexPath) as? NSManagedObject {
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            if let note = fetchedResultsController.object(at: indexPath) as? NSManagedObject {
                 // Delete Note
-                managedObjectContext?.deleteObject(note)
+                managedObjectContext?.delete(note)
             }
         }
     }
 
     // MARK: - Notification Handling
 
-    func managedObjectContextObjectsDidChange(notification: NSNotification) {
+    @objc func managedObjectContextObjectsDidChange(notification: Notification) {
         guard let userInfo = notification.userInfo else { return }
 
-        if let inserts = userInfo[NSInsertedObjectsKey] as? Set<NSManagedObject> where inserts.count > 0 {
+        if let inserts = userInfo[NSInsertedObjectsKey] as? Set<NSManagedObject>, !inserts.isEmpty {
             print("--- INSERTS ---")
             print(inserts)
             print("+++++++++++++++")
         }
 
-        if let updates = userInfo[NSUpdatedObjectsKey] as? Set<NSManagedObject> where updates.count > 0 {
+        if let updates = userInfo[NSUpdatedObjectsKey] as? Set<NSManagedObject>, !updates.isEmpty {
             print("--- UPDATES ---")
             for update in updates {
                 print(update.changedValues())
@@ -182,28 +183,28 @@ class ViewController: UITableViewController, NSFetchedResultsControllerDelegate 
             print("+++++++++++++++")
         }
 
-        if let deletes = userInfo[NSDeletedObjectsKey] as? Set<NSManagedObject> where deletes.count > 0 {
+        if let deletes = userInfo[NSDeletedObjectsKey] as? Set<NSManagedObject>, !deletes.isEmpty {
             print("--- DELETES ---")
             print(deletes)
             print("+++++++++++++++")
         }
     }
 
-    func managedObjectContextWillSave(notification: NSNotification) {
+    @objc func managedObjectContextWillSave(notification: NSNotification) {
 
     }
 
-    func managedObjectContextDidSave(notification: NSNotification) {
+    @objc func managedObjectContextDidSave(notification: NSNotification) {
 
     }
 
     // MARK: - Helper Methods
 
     private func fetchUser() -> User? {
-        let fetchRequest = NSFetchRequest(entityName: "User")
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "User")
 
         do {
-            if let result = try managedObjectContext?.executeFetchRequest(fetchRequest) as? [User] where result.count > 0, let user = result.first {
+            if let result = try managedObjectContext?.fetch(fetchRequest) as? [User] , result.count > 0, let user = result.first {
                 return user
             }
 
@@ -219,10 +220,10 @@ class ViewController: UITableViewController, NSFetchedResultsControllerDelegate 
 
     private func createUser() -> User? {
         guard let managedObjectContext = managedObjectContext,
-            let entity = NSEntityDescription.entityForName("User", inManagedObjectContext: managedObjectContext) else { return nil }
+            let entity = NSEntityDescription.entity(forEntityName: "User", in: managedObjectContext) else { return nil }
         
         // Create User
-        let result = User(entity: entity, insertIntoManagedObjectContext: managedObjectContext)
+        let result = User(entity: entity, insertInto: managedObjectContext)
         
         // Populate User
         result.first = "Bart"

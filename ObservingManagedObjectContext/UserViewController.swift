@@ -27,13 +27,13 @@ class UserViewController: UIViewController {
 
     // MARK: - Actions
 
-    @IBAction func save(sender: UIButton) {
+    @IBAction func save(_ sender: UIButton) {
         // Update User
         user?.first = firstTextField.text
         user?.last = lastTextField.text
 
         // Dismiss View Controller
-        dismissViewControllerAnimated(true, completion: nil)
+        dismiss(animated: true, completion: nil)
     }
     
 }
