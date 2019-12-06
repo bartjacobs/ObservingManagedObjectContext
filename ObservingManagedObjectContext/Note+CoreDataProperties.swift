@@ -16,8 +16,8 @@ extension Note {
 
     @NSManaged var content: String?
     @NSManaged var title: String?
-    @NSManaged var createdAt: NSTimeInterval
-    @NSManaged var updatedAt: NSTimeInterval
+    @NSManaged var createdAt: TimeInterval
+    @NSManaged var updatedAt: TimeInterval
     @NSManaged var user: User?
 
 }

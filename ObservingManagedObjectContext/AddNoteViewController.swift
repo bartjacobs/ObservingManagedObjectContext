@@ -24,15 +24,15 @@ class AddNoteViewController: UIViewController {
 
     // MARK: - Actions
 
-    @IBAction func cancel(sender: UIBarButtonItem) {
-        navigationController?.popViewControllerAnimated(true)
+    @IBAction func cancel(_ sender: UIBarButtonItem) {
+        navigationController?.popViewController(animated: true)
     }
 
-    @IBAction func save(sender: UIBarButtonItem) {
+    @IBAction func save(_ sender: UIBarButtonItem) {
         if let managedObjectContext = user.managedObjectContext,
-            let entity = NSEntityDescription.entityForName("Note", inManagedObjectContext: managedObjectContext) {
+            let entity = NSEntityDescription.entity(forEntityName: "Note", in: managedObjectContext) {
             // Create Note
-            let note = Note(entity: entity, insertIntoManagedObjectContext: managedObjectContext)
+            let note = Note(entity: entity, insertInto: managedObjectContext)
 
             // Populate Note
             note.title = titleTextField.text
@@ -42,7 +42,7 @@ class AddNoteViewController: UIViewController {
             note.user = user
         }
 
-        navigationController?.popViewControllerAnimated(true)
+        navigationController?.popViewController(animated: true)
     }
     
 }
